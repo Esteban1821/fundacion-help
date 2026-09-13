@@ -209,26 +209,46 @@ class DashboardController extends Controller
     // asignado (columna atendido_por_id, se llena desde TicketController).
     protected function tiempoResolucionPorTecnico(): array
     {
-        $tickets = Ticket::whereIn('estado', $this->estadosTerminales)
-            ->whereNotNull('atendido_por_id')
-            ->with('atendidoPor:id,name,last_name')
-            ->get(['id', 'atendido_por_id', 'created_at', 'updated_at']);
+        // Partimos del listado de funcionarios que pueden atender casos,
+        // no de los tickets. Asi un tecnico recien creado aparece en el
+        // reporte desde el primer momento (con cero) en lugar de quedar
+        // invisible hasta que cierre su primer caso. Los usuarios con rol
+        // 'usuario' quedan excluidos porque no atienden requerimientos.
+        $tecnicos = User::whereIn('role', ['soporte', 'admin'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'last_name']);
 
-        $porTecnico = $tickets->groupBy('atendido_por_id')->map(function ($grupo) {
-            $tecnico = $grupo->first()->atendidoPor;
-            $horasPromedio = $grupo->avg(fn ($t) => $t->created_at->diffInMinutes($t->updated_at) / 60);
+        // Un caso se considera resuelto desde que el tecnico lo marca como
+        // Atendido. El paso posterior a Cerrado depende de que el usuario
+        // califique el servicio, y esa demora no deberia ocultar el trabajo
+        // ya realizado por el area de soporte. Antes solo se contaban los
+        // estados terminales, por lo que el personal de soporte no aparecia
+        // en la grafica hasta que el solicitante calificara.
+        $estadosResueltos = array_merge(['Atendido'], $this->estadosTerminales);
+
+        $porTecnico = Ticket::whereIn('estado', $estadosResueltos)
+            ->whereNotNull('atendido_por_id')
+            ->get(['id', 'atendido_por_id', 'created_at', 'updated_at'])
+            ->groupBy('atendido_por_id');
+
+        $filas = $tecnicos->map(function ($tecnico) use ($porTecnico) {
+            $suyos = $porTecnico->get($tecnico->id, collect());
+
+            $horasPromedio = $suyos->isEmpty()
+                ? 0
+                : $suyos->avg(fn ($t) => $t->created_at->diffInMinutes($t->updated_at) / 60);
 
             return [
-                'tecnico' => $tecnico ? trim($tecnico->name . ' ' . $tecnico->last_name) : 'Sin asignar',
+                'tecnico' => trim($tecnico->name . ' ' . $tecnico->last_name),
                 'horas_promedio' => round($horasPromedio, 1),
-                'tickets_resueltos' => $grupo->count(),
+                'tickets_resueltos' => $suyos->count(),
             ];
         })->sortByDesc('tickets_resueltos')->values();
 
         return [
-            'labels' => $porTecnico->pluck('tecnico')->all(),
-            'data' => $porTecnico->pluck('horas_promedio')->all(),
-            'tickets' => $porTecnico->pluck('tickets_resueltos')->all(),
+            'labels' => $filas->pluck('tecnico')->all(),
+            'data' => $filas->pluck('horas_promedio')->all(),
+            'tickets' => $filas->pluck('tickets_resueltos')->all(),
         ];
     }
 }

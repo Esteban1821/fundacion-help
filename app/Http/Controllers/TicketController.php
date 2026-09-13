@@ -22,7 +22,9 @@ class TicketController extends Controller
     {
         // El control de rol ya lo aplica el middleware 'role:soporte,admin'
         // sobre el grupo de rutas de soporte (ver routes/web.php).
-        $tickets = Ticket::with('user')->orderBy('created_at', 'desc')->get();
+        // Se pagina para que la bandeja no cargue la tabla completa en memoria
+        // cuando el volumen de casos crezca.
+        $tickets = Ticket::with('user')->orderBy('created_at', 'desc')->paginate(15);
         return view('soporte.index', compact('tickets'));
     }
 

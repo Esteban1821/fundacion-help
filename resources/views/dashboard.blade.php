@@ -325,7 +325,8 @@
                 });
 
                 const ctxResolucion = document.getElementById('resolutionByAgentChart').getContext('2d');
-                const chartResolucion = new Chart(ctxResolucion, {
+                let chartResolucion;
+                chartResolucion = new Chart(ctxResolucion, {
                     type: 'bar',
                     data: {
                         labels: datosIniciales?.resolutionByAgent?.labels ?? [],
@@ -348,8 +349,8 @@
                             tooltip: {
                                 callbacks: {
                                     label: (ctx) => {
-                                        const tickets = datosIniciales?.resolutionByAgent?.tickets?.[ctx.dataIndex];
-                                        return `${ctx.parsed.x} h promedio` + (tickets ? ` · ${tickets} tickets` : '');
+                                        const tickets = chartResolucion._ticketsPorAgente?.[ctx.dataIndex];
+                                        return `${ctx.parsed.x} h promedio` + (tickets === undefined ? '' : ` · ${tickets} caso${tickets === 1 ? '' : 's'}`);
                                     }
                                 }
                             }
@@ -357,6 +358,9 @@
                         scales: { x: { beginAtZero: true, title: { display: true, text: 'Horas' } } }
                     }
                 });
+
+                // El tooltip necesita el conteo de casos ya en el primer render
+                chartResolucion._ticketsPorAgente = datosIniciales?.resolutionByAgent?.tickets ?? [];
 
                 function actualizarUI(stats) {
                     if (!stats) return;

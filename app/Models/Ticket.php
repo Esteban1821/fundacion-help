@@ -51,8 +51,9 @@ class Ticket extends Model
         return $this->belongsTo(Subservice::class, 'subservicio_id');
     }
 
-    // 👇 AQUÍ ESTÁ LA MAGIA QUE FALTABA 👇
-    // Relación: Un ticket tiene una (o ninguna) Calificación
+    // Relación uno a uno: un ticket puede tener una calificación o ninguna.
+    // La restricción UNIQUE sobre ratings.ticket_id garantiza que no se
+    // registre más de una por caso.
     public function rating()
     {
         return $this->hasOne(Rating::class);

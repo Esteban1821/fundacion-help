@@ -26,7 +26,9 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
-            // Si es su primer inicio, lo mandaremos a cambiar clave (lo haremos luego)
+            // La bandera requires_password_change queda disponible para forzar
+            // el cambio de contraseña en el primer ingreso. Esa redirección no
+            // está implementada en esta versión del prototipo.
             // Por ahora, si entra bien, lo mandamos al panel principal
             return redirect()->intended('/dashboard');
         }

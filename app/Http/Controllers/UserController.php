@@ -16,7 +16,7 @@ class UserController extends Controller
             return redirect('/dashboard')->withErrors(['Acceso denegado. Solo administradores.']);
         }
 
-        $users = User::all();
+        $users = User::orderBy('name')->paginate(15);
         return view('users.index', compact('users'));
     }
 

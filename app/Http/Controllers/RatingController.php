@@ -45,8 +45,9 @@ class RatingController extends Controller
             'comments' => $request->comments
         ]);
 
-        // ¡LA MAGIA DEL FLUJO ITIL!
-        // Cambiamos el estado del ticket a Cerrado
+        // Conforme al enfoque de ITIL adoptado, el cierre del caso corresponde
+        // al solicitante y no al técnico: el ticket pasa a Cerrado en el mismo
+        // momento en que el usuario confirma la atención mediante su calificación.
         $ticket->estado = 'Cerrado';
         $ticket->save();
 
